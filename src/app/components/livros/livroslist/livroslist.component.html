@@ -1,0 +1,62 @@
+<div class="container">
+
+    <div class="card">
+        <div class="card-body">
+            <div class="alinhamentoListagem">
+                <div>
+                    <h3 style="color: #54B4D3;">Listagem de livros</h3>
+                </div>
+                <div class="alinharDireita">
+                    <button [routerLink]="['/admin/livros/new']" type="button" class="btn btn-info btn-rounded"
+                        data-mdb-ripple-init><i class="fa-solid fa-square-plus"></i>
+                        Novo (rota)</button>
+                    <button (click)="new()" type="button" class="btn btn-info btn-rounded" data-mdb-ripple-init><i
+                            class="fa-solid fa-square-plus"></i>
+                        Novo (modal)</button>
+                </div>
+
+            </div>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="background-color: antiquewhite;" class="centralizar" scope="col">ID</th>
+                    <th style="background-color: antiquewhite;" class="centralizar" scope="col">Título</th>
+                    <th style="background-color: antiquewhite;" class="centralizar" scope="col">Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (livro of lista; track $index) {
+                <tr>
+                    <th class="centralizar" scope="row">{{livro.id}}</th>
+                    <td class="centralizar">{{livro.titulo}}</td>
+                    <td>
+                        <div class="centralizar">
+
+                            <button (click)="edit(livro)" type="button" type="button"
+                                class="btn btn-outline-warning btn-rounded" data-mdb-ripple-init
+                                data-mdb-ripple-color="dark">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                Editar</button>
+
+                            <button (click)="deleteById(livro)" type="button" class="btn btn-outline-danger btn-rounded"
+                                data-mdb-ripple-init data-mdb-ripple-color="dark">
+                                <i class="fa-solid fa-trash-can"></i>
+                                Deletar</button>
+                        </div>
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<ng-template #modalDetalhe>
+    <div style="background-color: #54B4D3;" class="modal-header">
+        <button type="button" class="btn-close" aria-label="Close" (click)="modalRef.close()"></button>
+    </div>
+    <div class="modal-body">
+        <app-livrosdetails [livro]="livroEdit" (retorno)="retornoDetalhe($event)"></app-livrosdetails>
+    </div>
+</ng-template>
