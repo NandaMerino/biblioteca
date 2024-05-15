@@ -4,68 +4,56 @@ import { RouterLink } from '@angular/router';
 import { MdbModalModule, MdbModalRef, MdbModalService } from 'mdb-angular-ui-kit/modal';
 import { Editora } from '../../../models/editora';
 import Swal from 'sweetalert2';
-import { EditorasdetailsComponent } from "../editorasdetails/editorasdetails.component";
+import { EditoraService } from '../../../services/editora.service';
 
 @Component({
     selector: 'app-editoraslist',
     standalone: true,
     templateUrl: './editoraslist.component.html',
     styleUrl: './editoraslist.component.scss',
-    imports: [FormsModule, RouterLink, MdbModalModule, EditorasdetailsComponent]
+    imports: [FormsModule, RouterLink, MdbModalModule, EditoraslistComponent]
 })
+
 export class EditoraslistComponent {
+  lista: Editora[] = [];
+  editoraEdit: Editora = new Editora(0, '');
+
   modalService = inject(MdbModalService);
   @ViewChild('modalDetalhe') modalDetalhe!: TemplateRef<any>;
-  modalRef!: MdbModalRef<any>; 
+  modalRef!: MdbModalRef<any>;
 
-  lista: Editora[] = [];
-  editoraEdit!: Editora;
+  editoraService = inject(EditoraService);
 
   constructor() {
+    this.listAll();
 
-    this.findAll();
-  }
-  findAll() {
-    let editora1 = new Editora();
-    editora1.id = 1;
-    editora1.nome = 'Editora A';
+    let editoraNovo = history.state.editoraNovo;
+    let editoraEditado = history.state.editoraEditado;
 
-    let editora2 = new Editora();
-    editora2.id = 2;
-    editora2.nome = 'Editora B';
-
-    let editora3 = new Editora();
-    editora3.id = 3;
-    editora3.nome = 'Editora C';
-
-    this.lista.push(editora1);
-    this.lista.push(editora2);
-    this.lista.push(editora3);
-  }
-
-  new() {
-    this.editoraEdit = new Editora();
-    this.modalRef = this.modalService.open(this.modalDetalhe);
-  }
-
-  edit(editora: Editora) {
-    this.editoraEdit = Object.assign({}, editora);
-    this.modalRef = this.modalService.open(this.modalDetalhe);
-  }
-
-  retornoDetalhe(editora: Editora) {
-    if (this.editoraEdit.id > 0) {
-      //editar
-      let indice = this.lista.findIndex((editorax) => {
-        return editorax.id == this.editoraEdit.id;
-      });
-      this.lista[indice] = editora;
-    } else {
-      //cadastrar um novo
-      editora.id = this.lista.length + 1;
-      this.lista.push(editora);
+    if (editoraNovo != null) {
+      this.lista.push(editoraNovo);
     }
-    this.modalRef.close();
+
+    if (editoraEditado != null) {
+      let indice = this.lista.findIndex((x) => {
+        return x.id == editoraEditado.id;
+      });
+      this.lista[indice] = editoraEditado;
+    }
+  }
+
+  listAll() {
+    console.log('a');
+
+    this.editoraService.listAll().subscribe({
+      next: (lista) => {
+        console.log('b');
+        this.lista = lista;
+      },
+      error: (erro) => {
+        alert('Não foi possivel exibir a lista');
+      },
+    });
   }
 
   deleteById(editora: Editora) {
@@ -87,24 +75,40 @@ export class EditoraslistComponent {
       })
       .then((result) => {
         if (result.isConfirmed) {
-          let indice = this.lista.findIndex((editorax) => {
-            return editorax.id == editora.id;
-          });
-          this.lista.splice(indice, 1);
-          swalWithBootstrapButtons.fire({
-            title: 'Cadastro deletado',
-            text: 'O cadastro do livro foi deletado com sucesso!',
-            icon: 'success',
-          });
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-          swalWithBootstrapButtons.fire({
-            title: 'Cadastro não deletado',
-            icon: 'error',
+          this.editoraService.delete(editora.id).subscribe({
+            next: (retorno) => {
+              swalWithBootstrapButtons.fire({
+                title: 'Cadastro deletado',
+                text: 'O cadastro da editora foi deletado com sucesso!',
+                icon: 'success',
+              });
+              this.listAll();
+            },
+            error: (erro) => {
+              alert(erro.status);
+              console.log(erro);
+              swalWithBootstrapButtons.fire({
+                title: 'Cadastro não deletado. Erro: ',
+                icon: 'error',
+              });
+            },
           });
         }
       });
   }
+
+  new() {
+    this.editoraEdit = new Editora(0, '');
+    this.modalRef = this.modalService.open(this.modalDetalhe);
+  }
+
+  edit(editora: Editora) {
+    this.editoraEdit = Object.assign({}, editora);
+    this.modalRef = this.modalService.open(this.modalDetalhe);
+  }
+
+  retornoDetalhe(editora: Editora) {
+    this.listAll();
+    this.modalRef.close();
+  }
 }
-
-
-

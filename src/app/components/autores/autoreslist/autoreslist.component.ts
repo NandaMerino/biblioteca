@@ -1,71 +1,69 @@
-import { Component, TemplateRef, ViewChild, inject } from '@angular/core';
+import {
+  Component,
+  TemplateRef,
+  ViewChild,
+  inject,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { MdbModalModule, MdbModalRef, MdbModalService } from 'mdb-angular-ui-kit/modal';
+import {
+  MdbModalModule,
+  MdbModalRef,
+  MdbModalService,
+} from 'mdb-angular-ui-kit/modal';
 import { Autor } from '../../../models/autor';
 import Swal from 'sweetalert2';
-import { AutoresdetailsComponent } from "../autoresdetails/autoresdetails.component";
+import { AutoresdetailsComponent } from '../autoresdetails/autoresdetails.component';
+import { AutorService } from '../../../services/autor.service';
 
 @Component({
-    selector: 'app-autoreslist',
-    standalone: true,
-    templateUrl: './autoreslist.component.html',
-    styleUrl: './autoreslist.component.scss',
-    imports: [FormsModule, RouterLink, MdbModalModule, AutoresdetailsComponent]
+  selector: 'app-autoreslist',
+  standalone: true,
+  templateUrl: './autoreslist.component.html',
+  styleUrl: './autoreslist.component.scss',
+  imports: [FormsModule, RouterLink, MdbModalModule, AutoresdetailsComponent],
 })
 export class AutoreslistComponent {
+  lista: Autor[] = [];
+  autorEdit: Autor = new Autor(0, '');
+
   modalService = inject(MdbModalService);
   @ViewChild('modalDetalhe') modalDetalhe!: TemplateRef<any>;
   modalRef!: MdbModalRef<any>;
 
-  lista: Autor[] = [];
-  autorEdit!: Autor;
+  autorService = inject(AutorService);
 
   constructor() {
+    this.listAll();
 
-    this.findAll();
-  }
-  findAll() {
-    let autor1 = new Autor();
-    autor1.id = 1;
-    autor1.nome = 'Autor A';
+    let autorNovo = history.state.autorNovo;
+    let autorEditado = history.state.autorEditado;
 
-    let autor2 = new Autor();
-    autor2.id = 2;
-    autor2.nome = 'Autor B';
-
-    let autor3 = new Autor();
-    autor3.id = 3;
-    autor3.nome = 'Autor C';
-
-    this.lista.push(autor1);
-    this.lista.push(autor2);
-    this.lista.push(autor3);
-  }
-
-  new() {
-    this.autorEdit = new Autor();
-    this.modalRef = this.modalService.open(this.modalDetalhe);
-  }
-
-  edit(autor: Autor) {
-    this.autorEdit = Object.assign({}, autor);
-    this.modalRef = this.modalService.open(this.modalDetalhe);
-  }
-
-  retornoDetalhe(autor: Autor) {
-    if (this.autorEdit.id > 0) {
-      //editar
-      let indice = this.lista.findIndex((autorx) => {
-        return autorx.id == this.autorEdit.id;
-      });
-      this.lista[indice] = autor;
-    } else {
-      //cadastrar um novo
-      autor.id = this.lista.length + 1;
-      this.lista.push(autor);
+    if (autorNovo != null) {
+      this.lista.push(autorNovo);
     }
-    this.modalRef.close();
+
+    if (autorEditado != null) {
+      let indice = this.lista.findIndex((x) => {
+        return x.id == autorEditado.id;
+      });
+      this.lista[indice] = autorEditado;
+    }
+  }
+
+  listAll() {
+    console.log('a');
+
+    this.autorService.listAll().subscribe({
+      next: (lista) => {
+        console.log('b');
+        this.lista = lista;
+      },
+      error: (erro) => {
+        alert('Não foi possivel exibir a lista');
+      },
+    });
   }
 
   deleteById(autor: Autor) {
@@ -87,22 +85,40 @@ export class AutoreslistComponent {
       })
       .then((result) => {
         if (result.isConfirmed) {
-          let indice = this.lista.findIndex((autorx) => {
-            return autorx.id == autor.id;
-          });
-          this.lista.splice(indice, 1);
-          swalWithBootstrapButtons.fire({
-            title: 'Cadastro deletado',
-            text: 'O cadastro do livro foi deletado com sucesso!',
-            icon: 'success',
-          });
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-          swalWithBootstrapButtons.fire({
-            title: 'Cadastro não deletado',
-            icon: 'error',
+          this.autorService.delete(autor.id).subscribe({
+            next: (retorno) => {
+              swalWithBootstrapButtons.fire({
+                title: 'Cadastro deletado',
+                text: 'O cadastro do livro foi deletado com sucesso!',
+                icon: 'success',
+              });
+              this.listAll();
+            },
+            error: (erro) => {
+              alert(erro.status);
+              console.log(erro);
+              swalWithBootstrapButtons.fire({
+                title: 'Cadastro não deletado. Erro: ',
+                icon: 'error',
+              });
+            },
           });
         }
       });
   }
 
+  new() {
+    this.autorEdit = new Autor(0, '');
+    this.modalRef = this.modalService.open(this.modalDetalhe);
+  }
+
+  edit(autor: Autor) {
+    this.autorEdit = Object.assign({}, autor);
+    this.modalRef = this.modalService.open(this.modalDetalhe);
+  }
+
+  retornoDetalhe(autor: Autor) {
+    this.listAll();
+    this.modalRef.close();
+  }
 }

@@ -9,6 +9,7 @@ import {
   MdbModalService,
 } from 'mdb-angular-ui-kit/modal';
 import Swal from 'sweetalert2';
+import { LivroService } from '../../../services/livro.service';
 
 @Component({
   selector: 'app-livroslist',
@@ -18,58 +19,45 @@ import Swal from 'sweetalert2';
   styleUrl: './livroslist.component.scss',
 })
 export class LivroslistComponent {
+  lista: Livro[] = [];
+  livroEdit: Livro = new Livro(0, '');
+
   modalService = inject(MdbModalService);
   @ViewChild('modalDetalhe') modalDetalhe!: TemplateRef<any>;
   modalRef!: MdbModalRef<any>;
 
-  lista: Livro[] = [];
-  livroEdit!: Livro;
+  livroService = inject(LivroService);
 
   constructor() {
-    this.findAll();
-  }
+    this.listAll();
 
-  findAll() {
-    let livro1 = new Livro();
-    livro1.id = 1;
-    livro1.titulo = 'Livro A';
+    let livroNovo = history.state.livroNovo;
+    let livroEditado = history.state.livroEditado;
 
-    let livro2 = new Livro();
-    livro2.id = 2;
-    livro2.titulo = 'Livro B';
-
-    let livro3 = new Livro();
-    livro3.id = 3;
-    livro3.titulo = 'Livro C';
-
-    this.lista.push(livro1);
-    this.lista.push(livro2);
-    this.lista.push(livro3);
-  }
-
-  new() {
-    this.livroEdit = new Livro();
-    this.modalRef = this.modalService.open(this.modalDetalhe);
-  }
-
-  edit(livro: Livro) {
-    this.livroEdit = Object.assign({}, livro);
-    this.modalRef = this.modalService.open(this.modalDetalhe);
-  }
-
-  retornoDetalhe(livro: Livro) {
-    if (this.livroEdit.id > 0) {
-      //editar
-      let indice = this.lista.findIndex((livroa) => {
-        return livroa.id == this.livroEdit.id;
-      });
-      this.lista[indice] = livro;
-    } else {
-      //cadastrar um novo
-      livro.id = this.lista.length + 1;
-      this.lista.push(livro);
+    if (livroNovo != null) {
+      this.lista.push(livroNovo);
     }
-    this.modalRef.close();
+
+    if (livroEditado != null) {
+      let indice = this.lista.findIndex((x) => {
+        return x.id == livroEditado.id;
+      });
+      this.lista[indice] = livroEditado;
+    }
+  }
+
+  listAll() {
+    console.log('a');
+
+    this.livroService.listAll().subscribe({
+      next: (lista) => {
+        console.log('b');
+        this.lista = lista;
+      },
+      error: (erro) => {
+        alert('Não foi possivel exibir a lista');
+      },
+    });
   }
 
   deleteById(livro: Livro) {
@@ -91,21 +79,40 @@ export class LivroslistComponent {
       })
       .then((result) => {
         if (result.isConfirmed) {
-          let indice = this.lista.findIndex((livroa) => {
-            return livroa.id == livro.id;
-          });
-          this.lista.splice(indice, 1);
-          swalWithBootstrapButtons.fire({
-            title: 'Cadastro deletado',
-            text: 'O cadastro do livro foi deletado com sucesso!',
-            icon: 'success',
-          });
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-          swalWithBootstrapButtons.fire({
-            title: 'Cadastro não deletado',
-            icon: 'error',
+          this.livroService.delete(livro.id).subscribe({
+            next: (retorno) => {
+              swalWithBootstrapButtons.fire({
+                title: 'Cadastro deletado',
+                text: 'O cadastro do livro foi deletado com sucesso!',
+                icon: 'success',
+              });
+              this.listAll();
+            },
+            error: (erro) => {
+              alert(erro.status);
+              console.log(erro);
+              swalWithBootstrapButtons.fire({
+                title: 'Cadastro não deletado. Erro: ',
+                icon: 'error',
+              });
+            },
           });
         }
       });
+  }
+
+  new() {
+    this.livroEdit = new Livro(0, '');
+    this.modalRef = this.modalService.open(this.modalDetalhe);
+  }
+
+  edit(livro: Livro) {
+    this.livroEdit = Object.assign({}, livro);
+    this.modalRef = this.modalService.open(this.modalDetalhe);
+  }
+
+  retornoDetalhe(livro: Livro) {
+    this.listAll();
+    this.modalRef.close();
   }
 }
